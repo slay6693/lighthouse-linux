@@ -1,96 +1,111 @@
-name: Docker
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-on:
-  schedule:
-    - cron: '39 16 * * *'
-  push:
-    branches: [ "main" ]
-    # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
-  pull_request:
-    branches: [ "main" ]
-
-env:
-  # Use docker.io for Docker Hub if empty
-  REGISTRY: ghcr.io
-  # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}
-
-
-jobs:
-  build:
-
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      # This is used to complete the identity challenge
-      # with sigstore/fulcio when running outside of PRs.
-      id-token: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      # Install the cosign tool except on PR
-      # https://github.com/sigstore/cosign-installer
-      - name: Install cosign
-        if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@f3c664df7af409cb4873aa5068053ba9d61a57b6 #v2.6.0
-        with:
-          cosign-release: 'v1.13.1'
-
-
-      # Workaround: https://github.com/docker/build-push-action/issues/461
-      - name: Setup Docker buildx
-        uses: docker/setup-buildx-action@79abd3f86f79a9d68a23c75a09a9a85889262adf
-
-      # Login against a Docker registry except on PR
-      # https://github.com/docker/login-action
-      - name: Log into registry ${{ env.REGISTRY }}
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@28218f9b04b4f3f62068d7b6ce6ca5b26e35336c
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Extract metadata (tags, labels) for Docker
-      # https://github.com/docker/metadata-action
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-
-      # Build and push Docker image with Buildx (don't push on PR)
-      # https://github.com/docker/build-push-action
-      - name: Build and push Docker image
-        id: build-and-push
-        uses: docker/build-push-action@ac9327eae2b366085ac7f6a2d02df8aa8ead720a
-        with:
-          context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-
-      # Sign the resulting Docker image digest except on PRs.
-      # This will only write to the public Rekor transparency log when the Docker
-      # repository is public to avoid leaking data.  If you would like to publish
-      # transparency data even for private images, pass --force to cosign below.
-      # https://github.com/sigstore/cosign
-      - name: Sign the published Docker image
-        if: ${{ github.event_name != 'pull_request' }}
-        env:
-          COSIGN_EXPERIMENTAL: "true"
-        # This step uses the identity token to provision an ephemeral certificate
-        # against the sigstore community Fulcio instance.
-        run: echo "${{ steps.meta.outputs.tags }}" | xargs -I {} cosign sign {}@${{ steps.build-and-push.outputs.digest }}
+{
+  "allow-nondistributable-artifacts": [],
+  "api-cors-header": "",
+  "authorization-plugins": [],
+  "bip": "",
+  "bridge": "",
+  "cgroup-parent": "",
+  "containerd": "/run/containerd/containerd.sock",
+  "containerd-namespace": "docker",
+  "containerd-plugin-namespace": "docker-plugins",
+  "data-root": "",
+  "debug": true,
+  "default-address-pools": [
+    {
+      "base": "172.30.0.0/16",
+      "size": 24
+    },
+    {
+      "base": "172.31.0.0/16",
+      "size": 24
+    }
+  ],
+  "default-cgroupns-mode": "private",
+  "default-gateway": "",
+  "default-gateway-v6": "",
+  "default-runtime": "runc",
+  "default-shm-size": "64M",
+  "default-ulimits": {
+    "nofile": {
+      "Hard": 64000,
+      "Name": "nofile",
+      "Soft": 64000
+    }
+  },
+  "dns": [],
+  "dns-opts": [],
+  "dns-search": [],
+  "exec-opts": [],
+  "exec-root": "",
+  "experimental": false,
+  "features": {},
+  "fixed-cidr": "",
+  "fixed-cidr-v6": "",
+  "group": "",
+  "hosts": [],
+  "http-proxy": "http://proxy.example.com:80",
+  "https-proxy": "https://proxy.example.com:443",
+  "no-proxy": "*.test.example.com,.example.org",
+  "icc": false,
+  "init": false,
+  "init-path": "/usr/libexec/docker-init",
+  "insecure-registries": [],
+  "ip": "0.0.0.0",
+  "ip-forward": false,
+  "ip-masq": false,
+  "iptables": false,
+  "ip6tables": false,
+  "ipv6": false,
+  "labels": [],
+  "live-restore": true,
+  "log-driver": "json-file",
+  "log-level": "",
+  "log-opts": {
+    "cache-disabled": "false",
+    "cache-max-file": "5",
+    "cache-max-size": "20m",
+    "cache-compress": "true",
+    "env": "os,customer",
+    "labels": "somelabel",
+    "max-file": "5",
+    "max-size": "10m"
+  },
+  "max-concurrent-downloads": 3,
+  "max-concurrent-uploads": 5,
+  "max-download-attempts": 5,
+  "mtu": 0,
+  "no-new-privileges": false,
+  "node-generic-resources": [
+    "NVIDIA-GPU=UUID1",
+    "NVIDIA-GPU=UUID2"
+  ],
+  "oom-score-adjust": 0,
+  "pidfile": "",
+  "raw-logs": false,
+  "registry-mirrors": [],
+  "runtimes": {
+    "cc-runtime": {
+      "path": "/usr/bin/cc-runtime"
+    },
+    "custom": {
+      "path": "/usr/local/bin/my-runc-replacement",
+      "runtimeArgs": [
+        "--debug"
+      ]
+    }
+  },
+  "seccomp-profile": "",
+  "selinux-enabled": false,
+  "shutdown-timeout": 15,
+  "storage-driver": "",
+  "storage-opts": [],
+  "swarm-default-advertise-addr": "",
+  "tls": true,
+  "tlscacert": "",
+  "tlscert": "",
+  "tlskey": "",
+  "tlsverify": true,
+  "userland-proxy": false,
+  "userland-proxy-path": "/usr/libexec/docker-proxy",
+  "userns-remap": ""
+}
